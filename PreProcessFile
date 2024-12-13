@@ -1,0 +1,55 @@
+# import fitz
+import os
+from PIL import Image
+from reportlab.pdfgen import canvas
+import uuid
+import cv2
+import numpy as np
+from Config import Config
+from fpdf import FPDF
+from pdf2image import convert_from_path
+
+def image_pdf(output_path):
+    image = Image.open(output_path)
+
+    pdf_filename = str(uuid.uuid4())
+    # defining the temporary PDF filename
+    output_pdf_path = os.path.abspath(pdf_filename + ".pdf")
+
+    # Writing Image to a PDF
+    pdf_canvas = canvas.Canvas(output_pdf_path, pagesize=image.size)
+    pdf_canvas.drawInlineImage(image, 0, 0)
+    pdf_canvas.save()
+    return output_pdf_path
+
+
+def PDF2Images(pdfpath):
+    from pdf2image import convert_from_path
+    import os
+    images_list = []
+    # Convert PDF to images
+    images = convert_from_path(pdfpath, poppler_path=Config.POPPLER_PATH)
+    # Save images
+    for i, image in enumerate(images):
+        images_list.append(os.path.join(os.getcwd(), Config.TEMP_IMG, f'page_{i + 1}.jpg'))
+        image.save(os.path.join(os.getcwd(), Config.TEMP_IMG, f'page_{i + 1}.jpg'), 'JPEG')
+    return images_list
+
+
+def Images2PDF(imageslist):
+    from PIL import Image
+    import os
+    # Open images
+    images = [Image.open(path) for path in imageslist]
+    output_path = os.path.join(os.getcwd(), Config.TEMP_PDF, f"{str(uuid.uuid4())}.pdf")
+    # Save images as a PDF
+    images[0].save(output_path, "PDF", resolution=100.0, save_all=True, append_images=images[1:])
+    return output_path
+
+
+def pre_process(pdfpath):
+    images_list = PDF2Images(pdfpath)
+    pdfout = Images2PDF(images_list)
+    for i in images_list:
+        os.remove(i)
+    return pdfout
